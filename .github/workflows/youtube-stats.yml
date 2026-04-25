@@ -26,4 +26,5 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           YOUTUBE_CHANNEL_ID: 'UC20ns0anAsbj_UFlhVnfu3A' # 実際のチャンネルIDを入れてください
+          FIRESTORE_DATABASE_ID: 'ai-studio-c3371ee5-7189-4594-b259-0526d7e86644'
         run: node scripts/update-youtube-stats.js

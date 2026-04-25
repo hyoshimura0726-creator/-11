@@ -289,6 +289,8 @@ export default function App() {
         if (data.views !== undefined) setViews(data.views);
         if (data.savings !== undefined) setSavings(data.savings);
       }
+    }, (error) => {
+      console.error("Firestore stats error:", error);
     });
 
     const unsubscribeVideo = onSnapshot(doc(db, 'settings', 'latest_video'), (docSnap) => {
@@ -297,6 +299,8 @@ export default function App() {
         if (data.videoId) setVideoId(data.videoId);
         if (data.title) setVideoTitle(data.title);
       }
+    }, (error) => {
+      console.error("Firestore latest_video error:", error);
     });
 
     return () => {
