@@ -273,40 +273,21 @@ function LatestVideo({ videoId, title }: { videoId?: string; title?: string }) {
 
 export default function App() {
   const { user, login, logout } = useAuth();
-  const [subs, setSubs] = useState(85);
-  const [views, setViews] = useState(1280);
+  const [subs, setSubs] = useState(0);
+  const [views, setViews] = useState(0);
   const [savings, setSavings] = useState(45200);
   
   const [videoId, setVideoId] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
 
-  const fetchYoutubeStats = async () => {
-    try {
-      const res = await fetch('/api/youtube-stats');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.subscriberCount !== undefined) setSubs(data.subscriberCount);
-        if (data.viewCount !== undefined) setViews(data.viewCount);
-      }
-    } catch (error) {
-      console.error("Failed to fetch YouTube stats:", error);
-    }
-  };
-
   useEffect(() => {
-    // YouTube stats auto-update
-    fetchYoutubeStats();
-    const interval = setInterval(fetchYoutubeStats, 5 * 60 * 1000); // 5 mins
-    
     // Firestore real-time auto-update
     const unsubscribeStats = onSnapshot(doc(db, 'settings', 'stats'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
+        if (data.subscribers !== undefined) setSubs(data.subscribers);
+        if (data.views !== undefined) setViews(data.views);
         if (data.savings !== undefined) setSavings(data.savings);
-        
-        // Use Firestore as fallback if YouTube API fails or hasn't loaded
-        setSubs(prev => prev === 85 && data.subscribers !== undefined ? data.subscribers : prev);
-        setViews(prev => prev === 1280 && data.views !== undefined ? data.views : prev);
       }
     });
 
@@ -319,7 +300,6 @@ export default function App() {
     });
 
     return () => {
-      clearInterval(interval);
       unsubscribeStats();
       unsubscribeVideo();
     };
@@ -396,13 +376,6 @@ export default function App() {
                 <Youtube size={18} />
                 <span className="text-sm font-mono">チャンネル登録者数</span>
               </div>
-              <button 
-                onClick={fetchYoutubeStats} 
-                className="text-neutral-500 hover:text-orange-400 transition-colors p-1.5 rounded-md hover:bg-neutral-800 focus:outline-none" 
-                title="強制更新 (YouTube)"
-              >
-                <RefreshCw size={14} />
-              </button>
             </div>
             <div className="text-3xl font-bold font-mono text-white mt-auto">
               <CountUp end={subs} />
@@ -415,13 +388,6 @@ export default function App() {
                 <Play size={18} />
                 <span className="text-sm font-mono">総再生回数</span>
               </div>
-              <button 
-                onClick={fetchYoutubeStats} 
-                className="text-neutral-500 hover:text-orange-400 transition-colors p-1.5 rounded-md hover:bg-neutral-800 focus:outline-none" 
-                title="強制更新 (YouTube)"
-              >
-                <RefreshCw size={14} />
-              </button>
             </div>
             <div className="text-3xl font-bold font-mono text-white mt-auto">
               <CountUp end={views} suffix="+" />
@@ -478,7 +444,7 @@ export default function App() {
            animate={{ opacity: 1, y: 0 }}
            transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
         >
-          <AdminPanel onUpdate={fetchYoutubeStats} />
+          <AdminPanel onUpdate={() => {}} />
         </motion.div>
 
         <motion.div 
