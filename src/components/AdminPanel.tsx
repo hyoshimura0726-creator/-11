@@ -44,12 +44,12 @@ export function AdminPanel({ onUpdate }: { onUpdate: () => void }) {
   const handleSaveStats = async () => {
     setIsSavingStats(true);
     try {
-      await setDoc(doc(db, 'settings', 'stats'), {
-        subscribers: Number(subs),
-        views: Number(views),
-        savings: Number(savings),
-        updatedAt: serverTimestamp()
-      });
+      const updateData: any = { updatedAt: serverTimestamp() };
+      if (subs !== '') updateData.subscribers = Number(subs);
+      if (views !== '') updateData.views = Number(views);
+      if (savings !== '') updateData.savings = Number(savings);
+      
+      await setDoc(doc(db, 'settings', 'stats'), updateData, { merge: true });
       onUpdate();
     } catch (e) {
       handleFirestoreError(e, 'update', '/settings/stats');
@@ -65,7 +65,7 @@ export function AdminPanel({ onUpdate }: { onUpdate: () => void }) {
         videoId,
         title: videoTitle,
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
       onUpdate();
     } catch (e) {
       handleFirestoreError(e, 'update', '/settings/latest_video');

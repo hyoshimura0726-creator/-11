@@ -47,8 +47,11 @@ async function main() {
     const items = response.data.items;
     if (items && items.length > 0) {
       const stats = items[0].statistics;
-      const subscriberCount = parseInt(stats.subscriberCount || '0', 10);
-      const viewCount = parseInt(stats.viewCount || '0', 10);
+      const rawSubs = typeof stats.subscriberCount === 'string' ? stats.subscriberCount.replace(/,/g, '') : (stats.subscriberCount || '0');
+      const rawViews = typeof stats.viewCount === 'string' ? stats.viewCount.replace(/,/g, '') : (stats.viewCount || '0');
+      
+      const subscriberCount = parseInt(rawSubs, 10);
+      const viewCount = parseInt(rawViews, 10);
 
       console.log(`Fetched stats -> Subs: ${subscriberCount}, Views: ${viewCount}`);
 
