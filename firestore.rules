@@ -1,0 +1,137 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isAdmin() { return request.auth != null && request.auth.token.email == "h.yoshimura0726@gmail.com" && request.auth.token.email_verified == true; }
+
+    function isValidVibeOnCreate(data) {
+      return data.keys().hasAll(['text', 'createdAt']) &&
+             data.keys().size() == 2 &&
+             data.text is string && data.text.size() <= 500 &&
+             data.createdAt == request.time;
+    }
+    
+    function isValidVibeOnUpdate(data) {
+      return data.keys().hasAll(['text', 'createdAt']) &&
+             data.keys().size() == 2 &&
+             data.text is string && data.text.size() <= 500;
+    }
+
+    function isBasicStudyLogValid(data) {
+      return data.keys().hasAll(['hours', 'date', 'createdAt']) &&
+             data.keys().size() == 3 &&
+             data.hours is number && data.hours >= 0 && data.hours <= 24 &&
+             data.date is string && data.date.size() <= 10 && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function isValidStudyLogOnCreate(data) {
+      return isBasicStudyLogValid(data) && data.createdAt == request.time;
+    }
+
+    function isValidStudyLogOnUpdate(data) {
+      return isBasicStudyLogValid(data);
+    }
+
+    function isValidSettingOnCreate(data) {
+      return data.keys().hasAll(['weeklyTargetHours', 'updatedAt']) &&
+             data.keys().size() == 2 &&
+             data.weeklyTargetHours is number && data.weeklyTargetHours >= 1 &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidSettingOnUpdate(data) {
+      return data.keys().hasAll(['weeklyTargetHours', 'updatedAt']) &&
+             data.keys().size() == 2 &&
+             data.weeklyTargetHours is number && data.weeklyTargetHours >= 1;
+    }
+
+    function isValidChannelStats(data) {
+      return data.keys().hasAll(['subscribers', 'views', 'savings', 'updatedAt']) &&
+             data.keys().size() == 4 &&
+             data.subscribers is number && data.subscribers >= 0 &&
+             data.views is number && data.views >= 0 &&
+             data.savings is number && data.savings >= 0;
+    }
+
+    function isValidLatestVideo(data) {
+      return data.keys().hasAll(['videoId', 'title', 'updatedAt']) &&
+             data.keys().size() == 3 &&
+             data.videoId is string && data.videoId.size() > 0 && data.videoId.size() <= 50 &&
+             data.title is string && data.title.size() <= 200;
+    }
+
+    function isValidCheerMessage(data) {
+      return data.keys().hasAll(['userId', 'displayName', 'text', 'createdAt']) &&
+             data.keys().size() == 4 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 50 &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 200 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidRoadmapMilestone(data) {
+      return data.keys().hasAll(['date', 'title', 'description', 'status', 'order', 'updatedAt']) &&
+             data.keys().size() == 6 &&
+             data.date is string && data.date.size() > 0 && data.date.size() <= 20 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.description is string && data.description.size() <= 500 &&
+             data.status is string && data.status in ['upcoming', 'current', 'completed'] &&
+             data.order is number && data.order >= 0 &&
+             data.updatedAt == request.time;
+    }
+
+    match /vibes/{vibeId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(vibeId) && isValidVibeOnCreate(incoming());
+      allow update: if isAdmin() && isValidId(vibeId) && isValidVibeOnUpdate(incoming()) && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['text']);
+      allow delete: if isAdmin();
+    }
+
+    match /study_logs/{logId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(logId) && isValidStudyLogOnCreate(incoming());
+      allow update: if isAdmin() && isValidId(logId) && isValidStudyLogOnUpdate(incoming()) && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['hours', 'date']);
+      allow delete: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if isAdmin() && (
+        (settingId == 'target' && isValidSettingOnCreate(incoming())) ||
+        (settingId == 'stats' && isValidChannelStats(incoming()) && incoming().updatedAt == request.time) ||
+        (settingId == 'latest_video' && isValidLatestVideo(incoming()) && incoming().updatedAt == request.time)
+      );
+      allow update: if isAdmin() && (
+        (settingId == 'target' && isValidSettingOnUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['weeklyTargetHours', 'updatedAt'])) ||
+        (settingId == 'stats' && isValidChannelStats(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['subscribers', 'views', 'savings', 'updatedAt'])) ||
+        (settingId == 'latest_video' && isValidLatestVideo(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['videoId', 'title', 'updatedAt']))
+      );
+    }
+
+    match /cheers/{messageId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if request.auth != null && isValidId(messageId) && isValidCheerMessage(incoming());
+      allow delete: if isAdmin();
+    }
+
+    match /roadmap_milestones/{milestoneId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(milestoneId) && isValidRoadmapMilestone(incoming());
+      allow update: if isAdmin() && isValidId(milestoneId) && isValidRoadmapMilestone(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'title', 'description', 'status', 'order', 'updatedAt']);
+      allow delete: if isAdmin();
+    }
+  }
+}

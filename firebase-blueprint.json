@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "Vibe": {
+      "title": "Vibe",
+      "description": "The channel owner's mood/vibe log.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "createdAt": { "type": "number", "description": "Timestamp" }
+      },
+      "required": ["text", "createdAt"]
+    },
+    "StudyLog": {
+      "title": "StudyLog",
+      "description": "Log of study sessions.",
+      "type": "object",
+      "properties": {
+        "hours": { "type": "number" },
+        "date": { "type": "string", "description": "YYYY-MM-DD" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["hours", "date", "createdAt"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global settings for the application.",
+      "type": "object",
+      "properties": {
+        "weeklyTargetHours": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["weeklyTargetHours", "updatedAt"]
+    },
+    "ChannelStats": {
+      "title": "ChannelStats",
+      "type": "object",
+      "properties": {
+        "subscribers": { "type": "number" },
+        "views": { "type": "number" },
+        "savings": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["subscribers", "views", "savings", "updatedAt"]
+    },
+    "LatestVideo": {
+      "title": "LatestVideo",
+      "type": "object",
+      "properties": {
+        "videoId": { "type": "string" },
+        "title": { "type": "string" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["videoId", "title", "updatedAt"]
+    },
+    "CheerMessage": {
+      "title": "CheerMessage",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "displayName", "text", "createdAt"]
+    }
+    "RoadmapMilestone": {
+      "title": "RoadmapMilestone",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["upcoming", "current", "completed"] },
+        "order": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["date", "title", "description", "status", "order", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/vibes/{vibeId}": {
+      "schema": "Vibe",
+      "description": "Public collection of vibe logs."
+    },
+    "/study_logs/{logId}": {
+      "schema": "StudyLog",
+      "description": "Public collection of study logs."
+    },
+    "/settings/{settingId}": {
+      "schema": "Settings",
+      "description": "Global settings. e.g., 'target', 'stats', 'latest_video'."
+    },
+    "/cheers/{messageId}": {
+      "schema": "CheerMessage",
+      "description": "Public cheer messages from viewers."
+    },
+    "/roadmap_milestones/{milestoneId}": {
+      "schema": "RoadmapMilestone",
+      "description": "Public roadmap milestones."
+    }
+  }
+}
