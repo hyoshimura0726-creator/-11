@@ -1,5 +1,5 @@
 import admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { google } from 'googleapis';
 import * as dotenv from 'dotenv';
 
@@ -56,7 +56,7 @@ async function main() {
       await db.collection('settings').doc('stats').set({
         subscribers: subscriberCount,
         views: viewCount,
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+        lastUpdated: FieldValue.serverTimestamp()
       }, { merge: true });
 
       console.log('Successfully updated Firestore stats.');
