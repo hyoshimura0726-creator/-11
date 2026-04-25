@@ -1,4 +1,5 @@
 import admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 import { google } from 'googleapis';
 import * as dotenv from 'dotenv';
 
@@ -8,6 +9,8 @@ dotenv.config();
 const API_KEY = process.env.YOUTUBE_API_KEY;
 const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
 const SERVICE_ACCOUNT_JSON = process.env.FIREBASE_SERVICE_ACCOUNT;
+// 環境変数か、すでに作成されているAI Studio用のDB IDを指定
+const DATABASE_ID = process.env.FIRESTORE_DATABASE_ID || 'ai-studio-c3371ee5-7189-4594-b259-0526d7e86644'; 
 
 if (!API_KEY || !CHANNEL_ID || !SERVICE_ACCOUNT_JSON) {
   console.error("Missing required environment variables.");
@@ -15,9 +18,10 @@ if (!API_KEY || !CHANNEL_ID || !SERVICE_ACCOUNT_JSON) {
 }
 
 // Firebase Admin 初期化
+let app;
 try {
   const serviceAccount = JSON.parse(SERVICE_ACCOUNT_JSON);
-  admin.initializeApp({
+  app = admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
   });
 } catch (error) {
@@ -25,7 +29,9 @@ try {
   process.exit(1);
 }
 
-const db = admin.firestore();
+// 特定のデータベースIDを指定してFirestoreインスタンスを取得
+const db = getFirestore(app, DATABASE_ID);
+
 const youtube = google.youtube({
   version: 'v3',
   auth: API_KEY
