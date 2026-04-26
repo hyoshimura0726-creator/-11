@@ -4,8 +4,10 @@ import { Terminal, Youtube, Play, Wallet, Dumbbell, Utensils, BookOpen, Flame, C
 import { VibeLog } from './components/VibeLog';
 import { StudyMetrics } from './components/StudyMetrics';
 import { AdminPanel } from './components/AdminPanel';
-import { CheerBoard } from './components/CheerBoard';
 import { Roadmap } from './components/Roadmap';
+import { Achievements } from './components/Achievements';
+import { CheerButton } from './components/CheerButton';
+import { LifeBalance } from './components/LifeBalance';
 import { useAuth } from './AuthContext';
 import { db } from './firebase';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -79,61 +81,40 @@ function Countdown({ targetDate, title }: { targetDate: string, title: string })
 }
 
 
-function Life() {
-  return (
-    <div className="mt-16">
-      <h2 className="text-neutral-500 font-mono text-sm mb-6 flex items-center gap-2">
-        // ライフバランス
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <motion.div whileHover={{ y: -4 }} className="bg-neutral-900/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col items-center justify-center gap-4 hover:border-orange-500/30 hover:bg-neutral-900/50 transition-all">
-          <div className="p-3 bg-neutral-950 rounded-full border border-neutral-800">
-            <Dumbbell className="text-neutral-400" size={20} />
-          </div>
-          <div className="text-center">
-            <div className="text-neutral-200 font-medium mb-1">筋トレ</div>
-            <div className="text-xs text-neutral-500">身体は最大の資本。</div>
-          </div>
-        </motion.div>
-        <motion.div whileHover={{ y: -4 }} className="bg-neutral-900/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col items-center justify-center gap-4 hover:border-orange-500/30 hover:bg-neutral-900/50 transition-all">
-          <div className="p-3 bg-neutral-950 rounded-full border border-neutral-800">
-            <Utensils className="text-neutral-400" size={20} />
-          </div>
-          <div className="text-center">
-            <div className="text-neutral-200 font-medium mb-1">料理</div>
-            <div className="text-xs text-neutral-500">身体を作る、心を整える。</div>
-          </div>
-        </motion.div>
-        <motion.div whileHover={{ y: -4 }} className="bg-neutral-900/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col items-center justify-center gap-4 hover:border-orange-500/30 hover:bg-neutral-900/50 transition-all">
-          <div className="p-3 bg-neutral-950 rounded-full border border-neutral-800">
-            <BookOpen className="text-neutral-400" size={20} />
-          </div>
-          <div className="text-center">
-            <div className="text-neutral-200 font-medium mb-1">読書</div>
-            <div className="text-xs text-neutral-500">先人の知恵をインストール。</div>
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
 
 
-function LatestVideo({ videoId, title }: { videoId?: string; title?: string }) {
+function VideoSection({ 
+  videoId, 
+  title, 
+  sectionTitle = "最新の記録 (LATEST_VLOG)", 
+  fetchFromRss = false 
+}: { 
+  videoId?: string; 
+  title?: string; 
+  sectionTitle?: string; 
+  fetchFromRss?: boolean 
+}) {
   const [video, setVideo] = useState<{ id: string; title: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // If props are provided via Firestore, use them; otherwise fetch from RSS
-    if (videoId && title) {
-      setVideo({ id: videoId, title });
+    // If props are provided via Firestore, use them
+    if (videoId) {
+      setVideo({ id: videoId, title: title || '' });
       setLoading(false);
       return;
     }
 
+    if (!fetchFromRss) {
+        setVideo(null);
+        setLoading(false);
+        return;
+    }
+
     const fetchVideo = async () => {
+      setLoading(true);
       try {
         const channelId = 'UC20ns0anAsbj_UFlhVnfu3A';
         const rssUrl = encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`);
@@ -153,7 +134,7 @@ function LatestVideo({ videoId, title }: { videoId?: string; title?: string }) {
     };
 
     fetchVideo();
-  }, [videoId, title]);
+  }, [videoId, title, fetchFromRss]);
 
   const videoUrl = video ? `https://youtu.be/${video.id}` : '';
 
@@ -163,11 +144,13 @@ function LatestVideo({ videoId, title }: { videoId?: string; title?: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  if (!loading && !video && !fetchFromRss) return null;
+
   return (
     <div className="mt-16 relative">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-neutral-500 font-mono text-sm flex items-center gap-2">
-          <Youtube size={16} /> 最新の記録 (LATEST_VLOG)
+          <Youtube size={16} /> {sectionTitle}
         </h2>
         {video && (
           <button 
@@ -280,6 +263,15 @@ export default function App() {
   const [videoId, setVideoId] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
 
+  const [recVideoId, setRecVideoId] = useState('');
+  const [recVideoTitle, setRecVideoTitle] = useState('');
+
+  const [profileText1, setProfileText1] = useState('32歳中卒フリーター、');
+  const [profileText2, setProfileText2] = useState('人生どん底からの挑戦。');
+  const [profileText3, setProfileText3] = useState('失った時間は戻らない。だからこそ、今からすべてを覆す。\n泥臭く、テクノロジーを武器に、逆転の軌跡をここに刻む。');
+
+  const [globalCheers, setGlobalCheers] = useState(0);
+
   const fetchYoutubeStats = async () => {
     try {
       const res = await fetch('/api/youtube-stats');
@@ -311,8 +303,32 @@ export default function App() {
     const unsubscribeVideo = onSnapshot(doc(db, 'settings', 'latest_video'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.videoId) setVideoId(data.videoId);
-        if (data.title) setVideoTitle(data.title);
+        setVideoId(data.videoId || '');
+        setVideoTitle(data.title || '');
+      }
+    });
+
+    const unsubscribeRecVideo = onSnapshot(doc(db, 'settings', 'recommended_video'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setRecVideoId(data.videoId || '');
+        setRecVideoTitle(data.title || '');
+      }
+    });
+
+    const unsubscribeProfile = onSnapshot(doc(db, 'settings', 'profile'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.text1) setProfileText1(data.text1);
+        if (data.text2) setProfileText2(data.text2);
+        if (data.text3) setProfileText3(data.text3);
+      }
+    });
+
+    const unsubscribeCheers = onSnapshot(doc(db, 'settings', 'global_cheers'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.count !== undefined) setGlobalCheers(data.count);
       }
     });
 
@@ -320,6 +336,9 @@ export default function App() {
       clearInterval(interval);
       unsubscribeStats();
       unsubscribeVideo();
+      unsubscribeRecVideo();
+      unsubscribeProfile();
+      unsubscribeCheers();
     };
   }, []);
 
@@ -352,18 +371,17 @@ export default function App() {
             プロジェクト：逆転ログ
           </div>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-6 leading-tight font-display">
-            32歳中卒フリーター、<br className="hidden md:block" />
+            {profileText1}<br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600">
-              人生どん底からの挑戦。
+              {profileText2}
             </span>
           </h1>
-          <p className="text-neutral-400 text-lg md:text-xl max-w-2xl leading-relaxed">
-            失った時間は戻らない。だからこそ、今からすべてを覆す。
-            泥臭く、テクノロジーを武器に、逆転の軌跡をここに刻む。
+          <p className="text-neutral-400 text-lg md:text-xl max-w-2xl leading-relaxed whitespace-pre-line">
+            {profileText3}
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row gap-6 items-start sm:items-center border-t border-neutral-800/50 pt-8 max-w-2xl">
-            <div className="flex-1 w-full">
+            <div className="flex-1 w-full relative">
               <div className="flex justify-between text-xs font-mono text-neutral-400 mb-2">
                 <span className="flex items-center gap-1.5"><Clock size={14} /> 今週の学習時間</span>
                 <span className="text-orange-400">42.5 / 50 hrs</span>
@@ -377,6 +395,8 @@ export default function App() {
                 />
               </div>
             </div>
+            
+            <CheerButton count={globalCheers} />
           </div>
         </motion.header>
 
@@ -452,15 +472,8 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.35, ease: "easeOut" }}
         >
-          {videoId ? <LatestVideo videoId={videoId} title={videoTitle} /> : <div />}
-        </motion.div>
-
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-        >
-          <CheerBoard />
+          <VideoSection videoId={recVideoId} title={recVideoTitle} sectionTitle="おすすめの動画 (RECOMMENDED)" fetchFromRss={false} />
+          <VideoSection videoId={videoId} title={videoTitle} fetchFromRss={true} />
         </motion.div>
 
         <motion.div
@@ -469,6 +482,14 @@ export default function App() {
            transition={{ duration: 0.8, delay: 0.45, ease: "easeOut" }}
         >
           <Roadmap />
+        </motion.div>
+
+        <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.8, delay: 0.48, ease: "easeOut" }}
+        >
+          <Achievements />
         </motion.div>
 
         <motion.div
@@ -499,7 +520,7 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
         >
-          <Life />
+          <LifeBalance />
         </motion.div>
         
         <footer className="mt-24 pt-8 border-t border-neutral-900 text-center text-neutral-600 font-mono text-xs">

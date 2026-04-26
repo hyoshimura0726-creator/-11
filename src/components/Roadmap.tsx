@@ -19,6 +19,7 @@ export function Roadmap() {
   
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   // States for new/editing milestone
   const [editDate, setEditDate] = useState('');
@@ -29,7 +30,7 @@ export function Roadmap() {
 
   const fetchMilestones = async () => {
     try {
-      const q = query(collection(db, 'roadmap_milestones'), orderBy('order', 'asc'));
+      const q = query(collection(db, 'roadmap_milestones'), orderBy('date', 'asc'));
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -83,9 +84,9 @@ export function Roadmap() {
 
   const handleDelete = async (id: string) => {
     if (!isAdmin) return;
-    if (!confirm('本当に削除しますか？')) return;
     try {
       await deleteDoc(doc(db, 'roadmap_milestones', id));
+      setDeleteConfirmId(null);
       await fetchMilestones();
     } catch (error) {
       handleFirestoreError(error, 'delete', `/roadmap_milestones/${id}`);
@@ -221,9 +222,19 @@ export function Roadmap() {
                       </h3>
                     </div>
                     {isAdmin && (
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => startEdit(item)} className="text-neutral-500 hover:text-white"><Edit2 size={14} /></button>
-                        <button onClick={() => handleDelete(item.id)} className="text-neutral-500 hover:text-red-400"><Trash2 size={14} /></button>
+                      <div className={`flex gap-2 transition-opacity ${deleteConfirmId === item.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                        {deleteConfirmId === item.id ? (
+                          <div className="flex items-center gap-2 bg-red-500/10 px-2 py-1 rounded">
+                            <span className="text-red-400 text-xs font-bold">削除する？</span>
+                            <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-300"><Check size={14} /></button>
+                            <button onClick={() => setDeleteConfirmId(null)} className="text-neutral-400 hover:text-white"><X size={14} /></button>
+                          </div>
+                        ) : (
+                          <>
+                            <button onClick={() => startEdit(item)} className="text-neutral-500 hover:text-white"><Edit2 size={14} /></button>
+                            <button onClick={() => setDeleteConfirmId(item.id)} className="text-neutral-500 hover:text-red-400"><Trash2 size={14} /></button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

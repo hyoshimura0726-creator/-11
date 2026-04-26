@@ -64,8 +64,23 @@ service cloud.firestore {
     function isValidLatestVideo(data) {
       return data.keys().hasAll(['videoId', 'title', 'updatedAt']) &&
              data.keys().size() == 3 &&
-             data.videoId is string && data.videoId.size() > 0 && data.videoId.size() <= 50 &&
+             data.videoId is string && data.videoId.size() >= 0 && data.videoId.size() <= 100 &&
              data.title is string && data.title.size() <= 200;
+    }
+
+    function isValidProfile(data) {
+      return data.keys().hasAll(['text1', 'text2', 'text3', 'updatedAt']) &&
+             data.keys().size() == 4 &&
+             data.text1 is string && data.text1.size() <= 200 &&
+             data.text2 is string && data.text2.size() <= 200 &&
+             data.text3 is string && data.text3.size() <= 1000;
+    }
+
+    function isValidGlobalCheerUpdate(incoming, existing) {
+       return incoming.keys().hasAll(['count', 'updatedAt']) &&
+              incoming.keys().size() == 2 &&
+              incoming.count is number &&
+              existing == null || incoming.count == existing.count + 1;
     }
 
     function isValidCheerMessage(data) {
@@ -84,6 +99,26 @@ service cloud.firestore {
              data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
              data.description is string && data.description.size() <= 500 &&
              data.status is string && data.status in ['upcoming', 'current', 'completed'] &&
+             data.order is number && data.order >= 0 &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidAchievement(data) {
+      return data.keys().hasAll(['date', 'title', 'description', 'order', 'updatedAt']) &&
+             data.keys().size() == 5 &&
+             data.date is string && data.date.size() > 0 && data.date.size() <= 20 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.description is string && data.description.size() <= 500 &&
+             data.order is number && data.order >= 0 &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidLifeBalance(data) {
+      return data.keys().hasAll(['icon', 'title', 'description', 'order', 'updatedAt']) &&
+             data.keys().size() == 5 &&
+             data.icon is string && data.icon.size() > 0 && data.icon.size() <= 50 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.description is string && data.description.size() <= 500 &&
              data.order is number && data.order >= 0 &&
              data.updatedAt == request.time;
     }
@@ -107,22 +142,43 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true;
       allow list: if true;
-      allow create: if isAdmin() && (
+      allow create: if (isAdmin() && (
         (settingId == 'target' && isValidSettingOnCreate(incoming())) ||
         (settingId == 'stats' && isValidChannelStats(incoming()) && incoming().updatedAt == request.time) ||
-        (settingId == 'latest_video' && isValidLatestVideo(incoming()) && incoming().updatedAt == request.time)
-      );
-      allow update: if isAdmin() && (
+        (settingId == 'latest_video' && isValidLatestVideo(incoming()) && incoming().updatedAt == request.time) ||
+        (settingId == 'recommended_video' && isValidLatestVideo(incoming()) && incoming().updatedAt == request.time) ||
+        (settingId == 'profile' && isValidProfile(incoming()) && incoming().updatedAt == request.time)
+      )) || (settingId == 'global_cheers' && isValidGlobalCheerUpdate(incoming(), null) && incoming().updatedAt == request.time);
+      
+      allow update: if (isAdmin() && (
         (settingId == 'target' && isValidSettingOnUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['weeklyTargetHours', 'updatedAt'])) ||
         (settingId == 'stats' && isValidChannelStats(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['subscribers', 'views', 'savings', 'updatedAt'])) ||
-        (settingId == 'latest_video' && isValidLatestVideo(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['videoId', 'title', 'updatedAt']))
-      );
+        (settingId == 'latest_video' && isValidLatestVideo(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['videoId', 'title', 'updatedAt'])) ||
+        (settingId == 'recommended_video' && isValidLatestVideo(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['videoId', 'title', 'updatedAt'])) ||
+        (settingId == 'profile' && isValidProfile(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['text1', 'text2', 'text3', 'updatedAt']))
+      )) || (settingId == 'global_cheers' && isValidGlobalCheerUpdate(incoming(), existing()) && incoming().diff(existing()).affectedKeys().hasOnly(['count', 'updatedAt']) && incoming().updatedAt == request.time);
     }
 
     match /cheers/{messageId} {
       allow read: if true;
       allow list: if true;
       allow create: if request.auth != null && isValidId(messageId) && isValidCheerMessage(incoming());
+      allow delete: if isAdmin();
+    }
+
+    match /achievements/{achievementId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(achievementId) && isValidAchievement(incoming());
+      allow update: if isAdmin() && isValidId(achievementId) && isValidAchievement(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'title', 'description', 'order', 'updatedAt']);
+      allow delete: if isAdmin();
+    }
+
+    match /life_balances/{balanceId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(balanceId) && isValidLifeBalance(incoming());
+      allow update: if isAdmin() && isValidId(balanceId) && isValidLifeBalance(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['icon', 'title', 'description', 'order', 'updatedAt']);
       allow delete: if isAdmin();
     }
 
