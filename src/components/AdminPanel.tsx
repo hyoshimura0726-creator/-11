@@ -44,12 +44,13 @@ export function AdminPanel({ onUpdate }: { onUpdate: () => void }) {
   const handleSaveStats = async () => {
     setIsSavingStats(true);
     try {
-      await setDoc(doc(db, 'settings', 'stats'), {
-        subscribers: Number(subs),
-        views: Number(views),
-        savings: Number(savings),
-        updatedAt: serverTimestamp()
-      });
+      // ユーザーの意図通り、空の入力項目を無視してマージ保存する
+      const updateData: any = { updatedAt: serverTimestamp() };
+      if (subs !== '') updateData.subscribers = Number(subs);
+      if (views !== '') updateData.views = Number(views);
+      if (savings !== '') updateData.savings = Number(savings);
+
+      await setDoc(doc(db, 'settings', 'stats'), updateData, { merge: true });
       onUpdate();
     } catch (e) {
       handleFirestoreError(e, 'update', '/settings/stats');
@@ -61,11 +62,11 @@ export function AdminPanel({ onUpdate }: { onUpdate: () => void }) {
   const handleSaveVideo = async () => {
     setIsSavingVideo(true);
     try {
-      await setDoc(doc(db, 'settings', 'latest_video'), {
-        videoId,
-        title: videoTitle,
-        updatedAt: serverTimestamp()
-      });
+      const updateData: any = { updatedAt: serverTimestamp() };
+      if (videoId !== '') updateData.videoId = videoId;
+      if (videoTitle !== '') updateData.title = videoTitle;
+
+      await setDoc(doc(db, 'settings', 'latest_video'), updateData, { merge: true });
       onUpdate();
     } catch (e) {
       handleFirestoreError(e, 'update', '/settings/latest_video');

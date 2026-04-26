@@ -297,16 +297,14 @@ export default function App() {
     // YouTube stats auto-update
     fetchYoutubeStats();
     const interval = setInterval(fetchYoutubeStats, 5 * 60 * 1000); // 5 mins
-    
+
     // Firestore real-time auto-update
     const unsubscribeStats = onSnapshot(doc(db, 'settings', 'stats'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.savings !== undefined) setSavings(data.savings);
-        
-        // Use Firestore as fallback if YouTube API fails or hasn't loaded
-        setSubs(prev => prev === 85 && data.subscribers !== undefined ? data.subscribers : prev);
-        setViews(prev => prev === 1280 && data.views !== undefined ? data.views : prev);
+        if (data.subscribers !== undefined) setSubs(prev => prev === 85 ? data.subscribers : prev);
+        if (data.views !== undefined) setViews(prev => prev === 1280 ? data.views : prev);
       }
     });
 

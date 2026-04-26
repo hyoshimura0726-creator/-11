@@ -10,6 +10,7 @@ export default defineConfig(({mode}) => {
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.FIRESTORE_DATABASE_ID': JSON.stringify(env.FIRESTORE_DATABASE_ID),
     },
     resolve: {
       alias: {
